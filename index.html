@@ -20,7 +20,9 @@
       <div class="logo">Lexis</div>
       <nav class="header-nav">
         <button id="btn-history" class="nav-btn" aria-label="View history">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
           History
         </button>
       </nav>
@@ -39,20 +41,24 @@
       <div class="search-box-wrapper">
         <div class="search-box" id="search-box">
           <span class="search-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
           </span>
           <input
             type="text"
             id="search-input"
             class="search-input"
-            placeholder="e.g. neural networks, climate change, Rust programming..."
+            placeholder="e.g. quantum computing, stoicism, WebAssembly..."
             autocomplete="off"
             spellcheck="false"
             maxlength="120"
           />
           <button id="search-btn" class="search-submit" aria-label="Generate brief">
             <span class="btn-text">Brief it</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
           </button>
         </div>
         <p class="search-hint">Press <kbd>Enter</kbd> or click Brief it</p>
@@ -65,12 +71,30 @@
         <button class="topic-pill" data-topic="WebAssembly">WebAssembly</button>
         <button class="topic-pill" data-topic="black holes">black holes</button>
         <button class="topic-pill" data-topic="machine learning">machine learning</button>
+        <button class="topic-pill" data-topic="CRISPR">CRISPR</button>
       </div>
     </main>
 
     <footer class="site-footer">
-      <p>Powered by Wikipedia · Open Library · DEV.to · arXiv · Quotable</p>
+      <div class="footer-inner">
+        <p class="footer-apis">Powered by Wikipedia · Open Library · DEV.to · Semantic Scholar · CrossRef</p>
+        <div class="footer-links">
+          <a href="https://github.com/Hhhpraise" target="_blank" rel="noopener" aria-label="GitHub">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            GitHub
+          </a>
+          <a href="https://hhhpraise.github.io/portfolio/" target="_blank" rel="noopener" aria-label="Portfolio">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            </svg>
+            Portfolio
+          </a>
+        </div>
+      </div>
     </footer>
+
   </div>
 
   <!-- ═══════════════════════════════ LOADING VIEW ═══════════════════════════════ -->
@@ -89,18 +113,20 @@
         </div>
         <div class="stage" id="stage-dev">
           <span class="stage-dot"></span>
-          <span class="stage-label">DEV.to articles</span>
+          <span class="stage-label">DEV.to</span>
         </div>
-        <div class="stage" id="stage-arxiv">
+        <div class="stage" id="stage-papers">
           <span class="stage-dot"></span>
-          <span class="stage-label">arXiv papers</span>
+          <span class="stage-label">Semantic Scholar</span>
         </div>
         <div class="stage" id="stage-quote">
           <span class="stage-dot"></span>
           <span class="stage-label">Quote</span>
         </div>
       </div>
-      <div class="loading-bar-track"><div class="loading-bar" id="loading-bar"></div></div>
+      <div class="loading-bar-track">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
     </div>
   </div>
 
@@ -109,19 +135,22 @@
 
     <header class="brief-header">
       <button id="btn-back" class="back-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
         New Brief
       </button>
       <div class="logo">Lexis</div>
       <button id="btn-save" class="nav-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>
         Save
       </button>
     </header>
 
-    <div class="brief-container" id="brief-container">
-      <!-- Populated by JS -->
-    </div>
+    <div class="brief-container" id="brief-container"></div>
 
   </div>
 
@@ -131,7 +160,9 @@
       <div class="panel-header">
         <h2 class="panel-title">Past Briefs</h2>
         <button id="btn-close-history" class="panel-close" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
       <div id="history-list" class="history-list">

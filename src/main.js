@@ -32,14 +32,14 @@ const historyPanel    = document.getElementById('panel-history');
 const panelOverlay    = document.getElementById('panel-overlay');
 
 const stageEls = {
-  wiki:  document.getElementById('stage-wiki'),
-  books: document.getElementById('stage-books'),
-  dev:   document.getElementById('stage-dev'),
-  arxiv: document.getElementById('stage-arxiv'),
-  quote: document.getElementById('stage-quote'),
+  wiki:   document.getElementById('stage-wiki'),
+  books:  document.getElementById('stage-books'),
+  dev:    document.getElementById('stage-dev'),
+  papers: document.getElementById('stage-papers'),
+  quote:  document.getElementById('stage-quote'),
 };
 
-const STAGE_KEYS   = ['wiki', 'books', 'dev', 'arxiv', 'quote'];
+const STAGE_KEYS   = ['wiki', 'books', 'dev', 'papers', 'quote'];
 const TOTAL_STAGES = STAGE_KEYS.length;
 
 /* ── State ───────────────────────────────────────────────── */
