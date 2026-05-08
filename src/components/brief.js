@@ -1,9 +1,11 @@
 /**
- * components/brief.js
- * Pure render function. Takes the data object, returns a populated DOM.
- * v2: adds Wikipedia hero image, renames arxiv→papers section.
+ * src/components/brief.js
+ *
+ * Pure render function. Takes data, returns populated DOM.
+ * No side effects, no global state.
  */
 
+/* ── Tiny DOM helper ────────────────────────────────────── */
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -12,47 +14,47 @@ function el(tag, attrs = {}, ...children) {
   }
   for (const child of children) {
     if (child == null) continue;
-    if (typeof child === 'string') node.appendChild(document.createTextNode(child));
-    else node.appendChild(child);
+    node.appendChild(
+      typeof child === 'string'
+        ? document.createTextNode(child)
+        : child
+    );
   }
   return node;
 }
 
-function sectionLabel(text) {
+function label(text) {
   return el('p', { class: 'section-label' }, text);
 }
 
 function section(labelText, ...children) {
   const s = el('div', { class: 'brief-section' });
-  s.appendChild(sectionLabel(labelText));
+  s.appendChild(label(labelText));
   children.filter(Boolean).forEach(c => s.appendChild(c));
   return s;
 }
 
-/* ── Hero image (Wikipedia thumbnail) ───────────────────── */
-function renderHeroImage(imageUrl, alt) {
-  if (!imageUrl) return null;
-  const wrap = el('div', { class: 'brief-hero-image' });
-  const img  = el('img', { src: imageUrl, alt: alt || '', loading: 'lazy' });
-  img.onerror = () => wrap.remove(); // silently remove if image 404s
-  wrap.appendChild(img);
-  return wrap;
-}
-
 /* ── Masthead ───────────────────────────────────────────── */
-export function renderMasthead(topic, imageUrl) {
-  const masthead = el('div', { class: 'brief-masthead' });
-  masthead.appendChild(el('p', { class: 'brief-meta' }, 'Research Brief'));
-  masthead.appendChild(el('h1', { class: 'brief-title' }, topic));
-  masthead.appendChild(
+function renderMasthead(topic, imageUrl) {
+  const wrap = el('div', { class: 'brief-masthead' });
+  wrap.appendChild(el('p', { class: 'brief-meta' }, 'Research Brief'));
+  wrap.appendChild(el('h1', { class: 'brief-title' }, topic));
+  wrap.appendChild(
     el('p', { class: 'brief-timestamp' },
       `Generated ${new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric',
       })} · Lexis`)
   );
-  const img = renderHeroImage(imageUrl, topic);
-  if (img) masthead.appendChild(img);
-  return masthead;
+
+  if (imageUrl) {
+    const imgWrap = el('div', { class: 'brief-hero-image' });
+    const img = el('img', { src: imageUrl, alt: topic, loading: 'lazy' });
+    img.onerror = () => imgWrap.remove();
+    imgWrap.appendChild(img);
+    wrap.appendChild(imgWrap);
+  }
+
+  return wrap;
 }
 
 /* ── Definition ─────────────────────────────────────────── */
@@ -68,7 +70,7 @@ function renderDefinition(wiki, topic) {
   } else {
     block.appendChild(
       el('p', { class: 'section-empty' },
-        `No Wikipedia summary found for "${topic}". Try a more specific or common term.`)
+        `No Wikipedia summary found for "${topic}". Try a broader or more common term.`)
     );
   }
 
@@ -90,13 +92,14 @@ function renderBooks(books) {
   if (!books?.length) {
     grid.appendChild(el('p', { class: 'section-empty' }, 'No books found for this topic.'));
   } else {
-    books.forEach(book => {
-      const card = el('a', { class: 'card', href: book.url, target: '_blank', rel: 'noopener' });
-      card.appendChild(el('p', { class: 'card-title' }, book.title));
-      const meta = el('p', { class: 'card-meta' });
-      meta.textContent = book.year ? `${book.author} · ${book.year}` : book.author;
-      card.appendChild(meta);
-      card.appendChild(el('span', { class: 'card-tag' }, 'Book'));
+    books.forEach(b => {
+      const card = el('a', { class: 'card', href: b.url, target: '_blank', rel: 'noopener' });
+      card.appendChild(el('p', { class: 'card-title' }, b.title));
+      const meta = b.year ? `${b.author} · ${b.year}` : b.author;
+      card.appendChild(el('p', { class: 'card-meta' }, meta));
+      const row = el('p', { class: 'card-tag-row' });
+      row.appendChild(el('span', { class: 'card-tag' }, 'Book'));
+      card.appendChild(row);
       grid.appendChild(card);
     });
   }
@@ -114,11 +117,9 @@ function renderArticles(articles) {
       card.appendChild(el('p', { class: 'card-title' }, a.title));
       card.appendChild(el('p', { class: 'card-meta' }, `${a.author} · ${a.reads} reactions`));
       if (a.tags.length) {
-        const tagsEl = el('p', {});
-        a.tags.forEach(t => {
-          tagsEl.appendChild(el('span', { class: 'card-tag' }, `#${t}`));
-        });
-        card.appendChild(tagsEl);
+        const row = el('p', { class: 'card-tag-row' });
+        a.tags.forEach(t => row.appendChild(el('span', { class: 'card-tag' }, `#${t}`)));
+        card.appendChild(row);
       }
       grid.appendChild(card);
     });
@@ -126,29 +127,48 @@ function renderArticles(articles) {
   return section('04 — Practitioner View', grid);
 }
 
-/* ── Papers (Semantic Scholar / CrossRef) ───────────────── */
+/* ── Papers ─────────────────────────────────────────────── */
 function renderPapers(papers) {
   const grid = el('div', { class: 'cards-grid' });
   if (!papers?.length) {
-    grid.appendChild(el('p', { class: 'section-empty' }, 'No research papers found for this topic.'));
+    grid.appendChild(
+      el('p', { class: 'section-empty' }, 'No research papers found for this topic.')
+    );
   } else {
     papers.forEach(p => {
-      const card = el('a', { class: 'card', href: p.url || '#', target: '_blank', rel: 'noopener' });
+      // data-abstract enables the hover tooltip (desktop only via JS matchMedia)
+      const attrs = {
+        class: 'card',
+        href: p.url || '#',
+        target: '_blank',
+        rel: 'noopener',
+      };
+      if (p.abstract) attrs['data-abstract'] = p.abstract;
+
+      const card = el('a', attrs);
       card.appendChild(el('p', { class: 'card-title' }, p.title));
+
       const authStr = [p.authors?.join(', '), p.year].filter(Boolean).join(' · ');
       if (authStr) card.appendChild(el('p', { class: 'card-meta' }, authStr));
-      card.appendChild(el('span', { class: 'card-tag' }, 'Research Paper'));
+
+      const row = el('p', { class: 'card-tag-row' });
+      row.appendChild(el('span', { class: 'card-tag' }, 'Research Paper'));
+      if (p.abstract) {
+        // hint tag — hidden on touch via CSS `@media (hover: none)`
+        row.appendChild(el('span', { class: 'card-tag card-tag--hint' }, 'Hover for abstract'));
+      }
+      card.appendChild(row);
       grid.appendChild(card);
     });
   }
   return section('05 — Research Frontier', grid);
 }
 
-/* ── Main ────────────────────────────────────────────────── */
+/* ── Main export ────────────────────────────────────────── */
 export function renderBrief(container, topic, data) {
   container.innerHTML = '';
 
-  const sections = [
+  const blocks = [
     renderMasthead(topic, data.wiki?.image),
     renderDefinition(data.wiki, topic),
     renderQuote(data.quote),
@@ -157,9 +177,9 @@ export function renderBrief(container, topic, data) {
     renderPapers(data.papers),
   ].filter(Boolean);
 
-  sections.forEach(s => container.appendChild(s));
+  blocks.forEach(b => container.appendChild(b));
 
-  // Stagger reveal animations
+  // Stagger section reveal animations
   container.querySelectorAll('.brief-section').forEach((s, i) => {
     s.style.animationDelay = `${0.05 + i * 0.09}s`;
     s.classList.add('revealed');

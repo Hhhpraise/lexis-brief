@@ -1,6 +1,6 @@
 {
   "name": "lexis-brief",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Type any topic. Get a structured research brief from multiple sources instantly.",
   "type": "module",
   "scripts": {
@@ -11,6 +11,6 @@
   "devDependencies": {
     "vite": "^5.2.0"
   },
-  "keywords": ["research", "knowledge", "api", "briefs", "students"],
+  "keywords": ["research", "knowledge", "brief", "students", "api"],
   "license": "MIT"
 }

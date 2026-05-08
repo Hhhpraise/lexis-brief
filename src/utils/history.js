@@ -1,7 +1,6 @@
 /**
- * utils/history.js
- * Manages brief history in localStorage.
- * Max 30 entries. Oldest dropped when limit hit.
+ * src/utils/history.js
+ * localStorage history management. Max 30 entries, oldest dropped at limit.
  */
 
 const KEY   = 'lexis:history';
@@ -18,25 +17,20 @@ export function getHistory() {
 export function saveToHistory(topic, data) {
   const history = getHistory();
 
-  // Avoid exact duplicate topics (case-insensitive)
-  const exists = history.findIndex(h => h.topic.toLowerCase() === topic.toLowerCase());
-  if (exists !== -1) history.splice(exists, 1);
+  // Remove existing entry for same topic (case-insensitive) so it moves to top
+  const idx = history.findIndex(h => h.topic.toLowerCase() === topic.toLowerCase());
+  if (idx !== -1) history.splice(idx, 1);
 
-  history.unshift({
-    id:        crypto.randomUUID(),
-    topic,
-    data,
-    savedAt:   Date.now(),
-  });
+  history.unshift({ id: crypto.randomUUID(), topic, data, savedAt: Date.now() });
 
   if (history.length > LIMIT) history.splice(LIMIT);
 
   try {
     localStorage.setItem(KEY, JSON.stringify(history));
-  } catch (e) {
-    // Storage quota exceeded — drop oldest and retry
+  } catch {
+    // Storage quota — drop oldest and retry once
     history.pop();
-    localStorage.setItem(KEY, JSON.stringify(history));
+    try { localStorage.setItem(KEY, JSON.stringify(history)); } catch { /* give up */ }
   }
 
   return history;
@@ -48,12 +42,9 @@ export function clearHistory() {
 }
 
 export function formatDate(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = now - d;
-
-  if (diff < 60_000)      return 'Just now';
-  if (diff < 3_600_000)   return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000)  return `${Math.floor(diff / 3_600_000)}h ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const diff = Date.now() - ts;
+  if (diff < 60_000)     return 'Just now';
+  if (diff < 3_600_000)  return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

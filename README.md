@@ -2,54 +2,61 @@
 
 > Type any topic. Get a structured, beautiful research brief from multiple sources in seconds.
 
-![Lexis screenshot placeholder](public/screenshot.png)
+Built by [Praise](https://hhhpraise.github.io/portfolio/) · [GitHub](https://github.com/Hhhpraise)
+
+---
 
 ## What it does
 
-Lexis solves information overload. Instead of opening 10 tabs and losing track, you type a topic and get a single, structured brief assembled from:
+Lexis solves information overload. Instead of opening 10 tabs and losing track, type a topic and get a single structured brief from:
 
 | Source | What it provides |
 |---|---|
-| **Wikipedia** | Definition and summary |
+| **Wikipedia** | Definition, summary, and cover image |
 | **Open Library** | Books worth reading on the topic |
 | **DEV.to** | Practitioner articles and tutorials |
-| **arXiv** | Academic papers at the research frontier |
-| **Quotable** | A relevant quote to anchor the brief |
+| **Semantic Scholar** | Academic papers with hover-to-preview abstracts |
+| **CrossRef** | Fallback paper source when Semantic Scholar rate-limits |
+| **Curated quotes** | A relevant quote to anchor the brief (instant, no API) |
 
-All fetched in parallel. All no-auth, no API key required.
+All sources are fetched in parallel. All are free and require no API keys.
 
 ## Why it's different
 
-Most aggregators stack results. Lexis imposes editorial structure — every brief follows the same five-section format (definition → perspective → deep reading → practitioner view → research frontier). That structure is the product.
+Most aggregators dump results. Lexis imposes editorial structure — every brief follows the same five-section format:
 
-## Tech
+**Definition → Perspective → Deep Reading → Practitioner View → Research Frontier**
 
-- Vanilla JS (ES modules) — no framework needed for this
-- Vite for dev/build
-- All external APIs are free and require no authentication
-- History stored in `localStorage` — no backend, no accounts
+That structure is the product.
+
+## Features
+
+- **Abstract tooltip** — hover any research paper card on desktop to preview the abstract. Touch devices see nothing (detected via `@media (hover: hover) and (pointer: fine)`, not user-agent sniffing).
+- **History** — saved briefs stored in `localStorage`, accessible from the History panel.
+- **Staggered loading** — each API source resolves independently; a broken source never blocks the brief.
+- **15-minute cache** — repeat searches skip the network entirely.
 
 ## Run locally
 
 ```bash
 npm install
 npm run dev
+# → http://localhost:5173
 ```
 
-Open `http://localhost:5173`
-
-## Deploy
+## Deploy to GitHub Pages
 
 ```bash
 npm run build
+# Upload dist/ to your gh-pages branch
 ```
 
-Deploy the `dist/` folder to GitHub Pages, Vercel, Netlify, or any static host.
+Or use a one-liner with the `gh-pages` package:
 
-### GitHub Pages (quick deploy)
-
-1. Build: `npm run build`
-2. Push `dist/` to a `gh-pages` branch, or use the [vite-plugin-gh-pages](https://github.com/craftzdog/vite-plugin-gh-pages) plugin.
+```bash
+npm install -D gh-pages
+npx gh-pages -d dist
+```
 
 ## Project structure
 
@@ -61,14 +68,15 @@ lexis-brief/
 ├── public/
 │   └── favicon.svg
 └── src/
-    ├── main.js           # App controller, view transitions, events
-    ├── style.css         # All styles — tokens, components, animations
+    ├── main.js                    # App controller, view transitions, events
+    ├── style.css                  # Design system, animations, tooltip styles
     ├── api/
-    │   └── index.js      # All API fetchers + parallel orchestrator
+    │   └── index.js               # All API fetchers + parallel orchestrator
     ├── components/
-    │   └── brief.js      # Pure render function for brief view
+    │   ├── brief.js               # Pure render function for brief view
+    │   └── abstractTooltip.js     # Hover tooltip — desktop only, matchMedia-gated
     └── utils/
-        └── history.js    # localStorage history management
+        └── history.js             # localStorage history, 30-entry limit
 ```
 
 ## Roadmap
@@ -78,6 +86,8 @@ lexis-brief/
 - [ ] News section via GNews API
 - [ ] Dark/light theme toggle
 - [ ] Keyboard shortcut reference modal
+- [ ] Hacker News section (top HN discussion threads per topic)
+- [ ] GitHub repos section (find relevant open-source projects)
 
 ## License
 
