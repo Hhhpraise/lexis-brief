@@ -1,16 +1,9 @@
 /**
  * src/api/index.js
+ * Brief pipeline API calls. Each fetcher resolves gracefully on failure.
  *
- * All external API calls. Each fetcher resolves gracefully on failure —
- * a broken source never crashes the brief, it just renders empty.
- *
- * Sources:
- *  - Wikipedia REST API        (CORS OK)
- *  - Open Library              (CORS OK)
- *  - DEV.to                    (CORS OK, tag must be lowercase/no-spaces)
- *  - Semantic Scholar          (CORS OK, replaces arXiv which is browser-blocked)
- *  - CrossRef                  (CORS OK, fallback for papers)
- *  - Quotes                    (local curated bank — no network, zero latency)
+ * Sources: Wikipedia · Open Library · DEV.to · Semantic Scholar · CrossRef
+ * All free, no API key, CORS-OK.
  */
 
 const CACHE     = new Map();
@@ -28,18 +21,14 @@ async function cachedFetch(url, opts = {}) {
 
 /* ── Wikipedia ──────────────────────────────────────────── */
 export async function fetchWikipedia(topic) {
-  // 1. Direct slug — fastest path
   try {
     const slug = encodeURIComponent(topic.replace(/ /g, '_'));
     const data = await cachedFetch(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`
     );
-    if (data.type !== 'disambiguation' && data.extract) {
-      return _wikiShape(data);
-    }
+    if (data.type !== 'disambiguation' && data.extract) return _wikiShape(data);
   } catch { /* fall through */ }
 
-  // 2. Full-text search fallback — catches niche / multi-word topics
   try {
     const q   = encodeURIComponent(topic);
     const res = await cachedFetch(
@@ -52,9 +41,7 @@ export async function fetchWikipedia(topic) {
       `https://en.wikipedia.org/api/rest_v1/page/summary/${slug2}`
     );
     return _wikiShape(data);
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function _wikiShape(d) {
@@ -82,20 +69,14 @@ export async function fetchBooks(topic) {
         author: b.author_name?.[0] || 'Unknown',
         year:   b.first_publish_year || null,
         url:    `https://openlibrary.org${b.key}`,
-        cover:  b.cover_i
-          ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg`
-          : null,
+        cover:  b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : null,
       }));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 /* ── DEV.to ─────────────────────────────────────────────── */
 export async function fetchDevArticles(topic) {
-  // Tags must be lowercase, alphanumeric only — DEV.to 404s otherwise
   const tag = topic.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 30);
-
   if (tag) {
     try {
       const data = await cachedFetch(
@@ -104,14 +85,10 @@ export async function fetchDevArticles(topic) {
       if (Array.isArray(data) && data.length) return _devShape(data);
     } catch { /* fall through */ }
   }
-
-  // Fallback: top trending articles (always non-empty)
   try {
     const data = await cachedFetch(`https://dev.to/api/articles?per_page=6&top=7`);
     return _devShape(data || []);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function _devShape(arr) {
@@ -124,33 +101,30 @@ function _devShape(arr) {
   }));
 }
 
-/* ── Semantic Scholar ───────────────────────────────────── */
-// Replaces arXiv which is blocked by CORS in all browsers.
-// Falls back to CrossRef if Semantic Scholar rate-limits.
+/* ── Semantic Scholar + CrossRef (papers) ───────────────── */
 export async function fetchPapers(topic) {
   try {
     const q    = encodeURIComponent(topic);
     const data = await cachedFetch(
-      `https://api.semanticscholar.org/graph/v1/paper/search?query=${q}&limit=5&fields=title,authors,year,externalIds,openAccessPdf,abstract`,
+      `https://api.semanticscholar.org/graph/v1/paper/search?query=${q}&limit=5&fields=paperId,title,authors,year,citationCount,externalIds,openAccessPdf,abstract`,
       { headers: { Accept: 'application/json' } }
     );
     const papers = (data.data || []).filter(p => p.title).slice(0, 4);
-    if (papers.length) {
-      return papers.map(p => ({
-        title:    p.title,
-        authors:  (p.authors || []).slice(0, 2).map(a => a.name),
-        year:     p.year || '',
-        abstract: p.abstract
-          ? p.abstract.slice(0, 420).trimEnd() + (p.abstract.length > 420 ? '…' : '')
-          : null,
-        url: p.openAccessPdf?.url
-          || (p.externalIds?.DOI ? `https://doi.org/${p.externalIds.DOI}` : null)
-          || `https://www.semanticscholar.org/paper/${p.paperId}`,
-      }));
-    }
+    if (papers.length) return papers.map(p => ({
+      paperId:      p.paperId,
+      title:        p.title,
+      authors:      (p.authors || []).slice(0, 2).map(a => a.name),
+      year:         p.year || '',
+      citationCount: p.citationCount || 0,
+      abstract:     p.abstract
+        ? p.abstract.slice(0, 420).trimEnd() + (p.abstract.length > 420 ? '…' : '')
+        : null,
+      url: p.openAccessPdf?.url
+        || (p.externalIds?.DOI ? `https://doi.org/${p.externalIds.DOI}` : null)
+        || `https://www.semanticscholar.org/paper/${p.paperId}`,
+    }));
   } catch { /* fall through to CrossRef */ }
 
-  // CrossRef fallback
   try {
     const q    = encodeURIComponent(topic);
     const data = await cachedFetch(
@@ -160,21 +134,19 @@ export async function fetchPapers(topic) {
       .filter(p => p.title?.length)
       .slice(0, 4)
       .map(p => ({
-        title:    p.title[0],
-        authors:  (p.author || []).slice(0, 2)
-                    .map(a => `${a.given || ''} ${a.family || ''}`.trim()),
-        year:     p.published?.['date-parts']?.[0]?.[0] || '',
-        abstract: null,
-        url:      p.URL || (p.DOI ? `https://doi.org/${p.DOI}` : '#'),
+        paperId:      null, // CrossRef has no SS paperId
+        title:        p.title[0],
+        authors:      (p.author || []).slice(0, 2)
+                        .map(a => `${a.given || ''} ${a.family || ''}`.trim()),
+        year:         p.published?.['date-parts']?.[0]?.[0] || '',
+        citationCount: 0,
+        abstract:     null,
+        url:          p.URL || (p.DOI ? `https://doi.org/${p.DOI}` : '#'),
       }));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 /* ── Quotes — curated local bank ───────────────────────── */
-// Quotable.io's SSL cert expired. This local bank has zero latency,
-// zero CORS issues, and we control quality.
 const QUOTE_BANK = [
   { content: "The measure of intelligence is the ability to change.", author: "Albert Einstein" },
   { content: "What we know is a drop, what we don't know is an ocean.", author: "Isaac Newton" },
@@ -209,17 +181,10 @@ const QUOTE_BANK = [
 ];
 
 export function fetchQuote() {
-  return Promise.resolve(
-    QUOTE_BANK[Math.floor(Math.random() * QUOTE_BANK.length)]
-  );
+  return Promise.resolve(QUOTE_BANK[Math.floor(Math.random() * QUOTE_BANK.length)]);
 }
 
 /* ── Orchestrator ───────────────────────────────────────── */
-/**
- * Fetch all sources in parallel. Each resolves independently —
- * a failed source returns its empty value, not an exception.
- * onProgress(key) is called as each source settles.
- */
 export async function fetchAll(topic, onProgress) {
   const wrap = (key, promise, empty = null) =>
     promise

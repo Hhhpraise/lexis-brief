@@ -7,32 +7,22 @@ const KEY   = 'lexis:history';
 const LIMIT = 30;
 
 export function getHistory() {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || '[]');
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+  catch { return []; }
 }
 
 export function saveToHistory(topic, data) {
   const history = getHistory();
-
-  // Remove existing entry for same topic (case-insensitive) so it moves to top
   const idx = history.findIndex(h => h.topic.toLowerCase() === topic.toLowerCase());
   if (idx !== -1) history.splice(idx, 1);
-
   history.unshift({ id: crypto.randomUUID(), topic, data, savedAt: Date.now() });
-
   if (history.length > LIMIT) history.splice(LIMIT);
-
   try {
     localStorage.setItem(KEY, JSON.stringify(history));
   } catch {
-    // Storage quota — drop oldest and retry once
     history.pop();
-    try { localStorage.setItem(KEY, JSON.stringify(history)); } catch { /* give up */ }
+    try { localStorage.setItem(KEY, JSON.stringify(history)); } catch { /* quota */ }
   }
-
   return history;
 }
 

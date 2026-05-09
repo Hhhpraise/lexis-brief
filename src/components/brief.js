@@ -1,27 +1,11 @@
 /**
  * src/components/brief.js
- *
  * Pure render function. Takes data, returns populated DOM.
- * No side effects, no global state.
+ * Dispatches custom events for track actions — no direct tracker imports.
  */
 
-/* ── Tiny DOM helper ────────────────────────────────────── */
-function el(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else node.setAttribute(k, v);
-  }
-  for (const child of children) {
-    if (child == null) continue;
-    node.appendChild(
-      typeof child === 'string'
-        ? document.createTextNode(child)
-        : child
-    );
-  }
-  return node;
-}
+import { el } from '../utils/dom.js';
+import { isTrackingPaper } from '../utils/tracker.js';
 
 function label(text) {
   return el('p', { class: 'section-label' }, text);
@@ -45,22 +29,19 @@ function renderMasthead(topic, imageUrl) {
         year: 'numeric', month: 'long', day: 'numeric',
       })} · Lexis`)
   );
-
   if (imageUrl) {
     const imgWrap = el('div', { class: 'brief-hero-image' });
-    const img = el('img', { src: imageUrl, alt: topic, loading: 'lazy' });
+    const img     = el('img', { src: imageUrl, alt: topic, loading: 'lazy' });
     img.onerror = () => imgWrap.remove();
     imgWrap.appendChild(img);
     wrap.appendChild(imgWrap);
   }
-
   return wrap;
 }
 
 /* ── Definition ─────────────────────────────────────────── */
 function renderDefinition(wiki, topic) {
   const block = el('div', { class: 'definition-block' });
-
   if (wiki?.extract) {
     block.appendChild(el('p', { class: 'definition-text' }, wiki.extract));
     const src  = el('p', { class: 'definition-source' });
@@ -73,7 +54,6 @@ function renderDefinition(wiki, topic) {
         `No Wikipedia summary found for "${topic}". Try a broader or more common term.`)
     );
   }
-
   return section('01 — Definition', block);
 }
 
@@ -95,8 +75,7 @@ function renderBooks(books) {
     books.forEach(b => {
       const card = el('a', { class: 'card', href: b.url, target: '_blank', rel: 'noopener' });
       card.appendChild(el('p', { class: 'card-title' }, b.title));
-      const meta = b.year ? `${b.author} · ${b.year}` : b.author;
-      card.appendChild(el('p', { class: 'card-meta' }, meta));
+      card.appendChild(el('p', { class: 'card-meta' }, b.year ? `${b.author} · ${b.year}` : b.author));
       const row = el('p', { class: 'card-tag-row' });
       row.appendChild(el('span', { class: 'card-tag' }, 'Book'));
       card.appendChild(row);
@@ -130,37 +109,76 @@ function renderArticles(articles) {
 /* ── Papers ─────────────────────────────────────────────── */
 function renderPapers(papers) {
   const grid = el('div', { class: 'cards-grid' });
+
   if (!papers?.length) {
     grid.appendChild(
       el('p', { class: 'section-empty' }, 'No research papers found for this topic.')
     );
   } else {
     papers.forEach(p => {
-      // data-abstract enables the hover tooltip (desktop only via JS matchMedia)
-      const attrs = {
-        class: 'card',
-        href: p.url || '#',
-        target: '_blank',
-        rel: 'noopener',
-      };
+      // Paper cards are div+anchor-title so Track button doesn't fight link navigation
+      const attrs = { class: 'card paper-card' };
       if (p.abstract) attrs['data-abstract'] = p.abstract;
+      const card = el('div', attrs);
 
-      const card = el('a', attrs);
-      card.appendChild(el('p', { class: 'card-title' }, p.title));
+      // Title as anchor
+      const titleLink = el('a', {
+        class: 'paper-card-link',
+        href:  p.url || '#',
+        target: '_blank', rel: 'noopener',
+      });
+      titleLink.appendChild(el('p', { class: 'card-title' }, p.title));
+      card.appendChild(titleLink);
 
-      const authStr = [p.authors?.join(', '), p.year].filter(Boolean).join(' · ');
-      if (authStr) card.appendChild(el('p', { class: 'card-meta' }, authStr));
+      // Authors — clickable to open author search modal
+      if (p.authors?.length) {
+        const authEl = el('p', { class: 'card-meta card-authors' });
+        p.authors.forEach((name, i) => {
+          const span = el('span', { class: 'author-link' }, name);
+          span.addEventListener('click', e => {
+            e.stopPropagation();
+            window.dispatchEvent(
+              new CustomEvent('lexis:search-author', { detail: { name } })
+            );
+          });
+          authEl.appendChild(span);
+          if (i < p.authors.length - 1) authEl.appendChild(document.createTextNode(', '));
+        });
+        if (p.year) authEl.appendChild(document.createTextNode(` · ${p.year}`));
+        card.appendChild(authEl);
+      }
 
+      // Tags row
       const row = el('p', { class: 'card-tag-row' });
       row.appendChild(el('span', { class: 'card-tag' }, 'Research Paper'));
       if (p.abstract) {
-        // hint tag — hidden on touch via CSS `@media (hover: none)`
         row.appendChild(el('span', { class: 'card-tag card-tag--hint' }, 'Hover for abstract'));
       }
       card.appendChild(row);
+
+      // Track button — only for papers with a Semantic Scholar paperId
+      if (p.paperId) {
+        const alreadyTracking = isTrackingPaper(p.paperId);
+        const trackBtn = el('button', {
+          class: `card-track-btn${alreadyTracking ? ' card-track-btn--active' : ''}`,
+        });
+        trackBtn.textContent = alreadyTracking ? '✓ Tracking' : '+ Track';
+        if (alreadyTracking) trackBtn.disabled = true;
+        trackBtn.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.dispatchEvent(new CustomEvent('lexis:track-paper', { detail: p }));
+          trackBtn.textContent = '✓ Tracking';
+          trackBtn.classList.add('card-track-btn--active');
+          trackBtn.disabled = true;
+        });
+        card.appendChild(trackBtn);
+      }
+
       grid.appendChild(card);
     });
   }
+
   return section('05 — Research Frontier', grid);
 }
 
@@ -179,7 +197,6 @@ export function renderBrief(container, topic, data) {
 
   blocks.forEach(b => container.appendChild(b));
 
-  // Stagger section reveal animations
   container.querySelectorAll('.brief-section').forEach((s, i) => {
     s.style.animationDelay = `${0.05 + i * 0.09}s`;
     s.classList.add('revealed');

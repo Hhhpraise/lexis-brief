@@ -1,22 +1,31 @@
 /**
  * src/main.js
- * Application controller.
- * Owns view transitions, loading orchestration, and all event wiring.
+ * Application controller. Owns view transitions, loading, and all event wiring.
+ * Now includes the Research Tracker feature.
  */
 
-import { fetchAll }                from './api/index.js';
-import { renderBrief }             from './components/brief.js';
-import { initAbstractTooltip }     from './components/abstractTooltip.js';
+import { fetchAll }             from './api/index.js';
+import { refreshTrackedAuthors, refreshTrackedPapers } from './api/tracker.js';
+import { renderBrief }          from './components/brief.js';
+import { initAbstractTooltip }  from './components/abstractTooltip.js';
+import { renderTrackerDashboard } from './components/trackerDashboard.js';
+import { openAuthorModal, closeAuthorModal } from './components/authorModal.js';
 import {
-  getHistory, saveToHistory,
-  clearHistory, formatDate,
+  getHistory, saveToHistory, clearHistory, formatDate,
 } from './utils/history.js';
+import {
+  getTrackedAuthors, getTrackedPapers,
+  addTrackedAuthor, addTrackedPaper,
+  updateAuthorPapers, updatePaperCitations,
+  needsRefresh, getTrackerBadgeCount,
+} from './utils/tracker.js';
 
 /* ── DOM refs ───────────────────────────────────────────── */
 const views = {
   search:  document.getElementById('view-search'),
   loading: document.getElementById('view-loading'),
   brief:   document.getElementById('view-brief'),
+  tracker: document.getElementById('view-tracker'),
 };
 
 const searchInput     = document.getElementById('search-input');
@@ -25,6 +34,7 @@ const searchBox       = document.getElementById('search-box');
 const briefContainer  = document.getElementById('brief-container');
 const loadingTopic    = document.getElementById('loading-topic-label');
 const loadingBar      = document.getElementById('loading-bar');
+const trackerBody     = document.getElementById('tracker-body');
 
 const btnHistory      = document.getElementById('btn-history');
 const btnBack         = document.getElementById('btn-back');
@@ -34,6 +44,7 @@ const btnClearHistory = document.getElementById('btn-clear-history');
 const historyList     = document.getElementById('history-list');
 const historyPanel    = document.getElementById('panel-history');
 const panelOverlay    = document.getElementById('panel-overlay');
+const btnTrackerRefresh = document.getElementById('btn-tracker-refresh');
 
 const stageEls = {
   wiki:   document.getElementById('stage-wiki'),
@@ -51,17 +62,15 @@ let currentView  = 'search';
 let currentTopic = '';
 let currentData  = null;
 let isFetching   = false;
+let isRefreshing = false;
 
 /* ── View transitions ───────────────────────────────────── */
 function showView(name) {
   if (name === currentView) return;
-
   const prev = views[currentView];
   prev.classList.add('exiting');
   prev.classList.remove('active');
   setTimeout(() => prev.classList.remove('exiting'), 380);
-
-  // Slight delay so exit animation leads
   setTimeout(() => views[name].classList.add('active'), 60);
   currentView = name;
 }
@@ -81,12 +90,11 @@ function onProgress(key) {
   loadingBar.style.width = `${(done / TOTAL_STAGES) * 100}%`;
 }
 
-/* ── Search ─────────────────────────────────────────────── */
+/* ── Brief search ───────────────────────────────────────── */
 async function runSearch(rawTopic) {
   const topic = rawTopic.trim();
   if (!topic || isFetching) return;
   isFetching = true;
-
   currentTopic = topic;
   currentData  = null;
 
@@ -94,7 +102,6 @@ async function runSearch(rawTopic) {
   loadingTopic.textContent = `"${topic}"`;
   showView('loading');
 
-  // Stagger stage dots to show perceived activity
   STAGE_KEYS.forEach((k, i) => {
     setTimeout(() => {
       if (!stageEls[k].classList.contains('done'))
@@ -105,19 +112,14 @@ async function runSearch(rawTopic) {
   try {
     const data = await fetchAll(topic, onProgress);
     currentData = data;
-
-    // Flush any stages not yet marked done
     STAGE_KEYS.forEach(k => {
       stageEls[k].classList.remove('active');
       stageEls[k].classList.add('done');
     });
     loadingBar.style.width = '100%';
-
-    await sleep(300); // let user see 100% complete
-
+    await sleep(300);
     renderBrief(briefContainer, topic, data);
     showView('brief');
-
   } catch (err) {
     console.error('[Lexis] Fetch error:', err);
     showView('search');
@@ -125,6 +127,49 @@ async function runSearch(rawTopic) {
   } finally {
     isFetching = false;
   }
+}
+
+/* ── Tracker view ───────────────────────────────────────── */
+function openTrackerView() {
+  renderTrackerDashboard(trackerBody);
+  showView('tracker');
+  updateTrackerBadge();
+
+  // Background refresh for stale items — non-blocking
+  const staleAuthors = getTrackedAuthors().filter(needsRefresh);
+  const stalePapers  = getTrackedPapers().filter(needsRefresh);
+  if ((staleAuthors.length || stalePapers.length) && !isRefreshing) {
+    performRefresh(staleAuthors, stalePapers);
+  }
+}
+
+async function performRefresh(authors, papers) {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  btnTrackerRefresh?.classList.add('is-refreshing');
+
+  await refreshTrackedAuthors(authors, (authorId, latestPapers) => {
+    if (latestPapers.length) updateAuthorPapers(authorId, latestPapers);
+  });
+
+  await refreshTrackedPapers(papers, (paperId, citations) => {
+    updatePaperCitations(paperId, citations);
+  });
+
+  isRefreshing = false;
+  btnTrackerRefresh?.classList.remove('is-refreshing');
+
+  if (currentView === 'tracker') {
+    renderTrackerDashboard(trackerBody);
+    updateTrackerBadge();
+  }
+}
+
+function updateTrackerBadge() {
+  const count = getTrackerBadgeCount();
+  document.querySelectorAll('.tracker-nav-badge').forEach(badge => {
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+  });
 }
 
 /* ── History panel ──────────────────────────────────────── */
@@ -144,12 +189,10 @@ function closeHistory() {
 function renderHistoryPanel() {
   const history = getHistory();
   historyList.innerHTML = '';
-
   if (!history.length) {
     historyList.innerHTML = '<p class="empty-state">No saved briefs yet.</p>';
     return;
   }
-
   history.forEach(entry => {
     const item = document.createElement('div');
     item.className = 'history-item';
@@ -172,18 +215,13 @@ function renderHistoryPanel() {
 function saveBrief() {
   if (!currentTopic || !currentData) return;
   saveToHistory(currentTopic, currentData);
-
   const original = btnSave.innerHTML;
   btnSave.innerHTML = `
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
       <polyline points="20 6 9 12 4 10"/>
-    </svg>
-    Saved`;
+    </svg> Saved`;
   btnSave.style.color = 'var(--green)';
-  setTimeout(() => {
-    btnSave.innerHTML = original;
-    btnSave.style.color = '';
-  }, 2200);
+  setTimeout(() => { btnSave.innerHTML = original; btnSave.style.color = ''; }, 2200);
 }
 
 /* ── Utilities ──────────────────────────────────────────── */
@@ -191,10 +229,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function escapeHtml(str) {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function flashError(msg) {
@@ -209,12 +245,12 @@ function flashError(msg) {
 }
 
 /* ── Events ─────────────────────────────────────────────── */
-searchBtn.addEventListener('click', () => runSearch(searchInput.value));
 
+// Brief search
+searchBtn.addEventListener('click', () => runSearch(searchInput.value));
 searchInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') runSearch(searchInput.value);
 });
-
 document.querySelectorAll('.topic-pill').forEach(pill => {
   pill.addEventListener('click', () => {
     searchInput.value = pill.dataset.topic;
@@ -222,27 +258,56 @@ document.querySelectorAll('.topic-pill').forEach(pill => {
   });
 });
 
-btnBack.addEventListener('click', () => {
-  searchInput.value = '';
-  showView('search');
+// Brief controls
+btnBack.addEventListener('click', () => { searchInput.value = ''; showView('search'); });
+btnSave.addEventListener('click', saveBrief);
+
+// Tracker nav (in both search and brief headers)
+document.querySelectorAll('.btn-tracker-nav').forEach(btn => {
+  btn.addEventListener('click', openTrackerView);
 });
 
-btnSave.addEventListener('click', saveBrief);
+// Tracker back + refresh
+document.getElementById('btn-tracker-back')?.addEventListener('click', () => {
+  showView(currentData ? 'brief' : 'search');
+});
+
+btnTrackerRefresh?.addEventListener('click', () => {
+  if (!isRefreshing) {
+    performRefresh(getTrackedAuthors(), getTrackedPapers());
+  }
+});
+
+// History panel
 btnHistory.addEventListener('click', openHistory);
 btnCloseHistory.addEventListener('click', closeHistory);
 panelOverlay.addEventListener('click', closeHistory);
+btnClearHistory.addEventListener('click', () => { clearHistory(); renderHistoryPanel(); });
 
-btnClearHistory.addEventListener('click', () => {
-  clearHistory();
-  renderHistoryPanel();
+// Custom events from brief.js paper cards
+window.addEventListener('lexis:track-paper', e => {
+  addTrackedPaper(e.detail);
+  updateTrackerBadge();
 });
 
+window.addEventListener('lexis:search-author', e => {
+  openAuthorModal(e.detail.name, author => {
+    addTrackedAuthor(author);
+    updateTrackerBadge();
+  });
+});
+
+// Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (historyPanel.classList.contains('open')) closeHistory();
-  else if (currentView === 'brief') showView('search');
+  const authorModal = document.getElementById('modal-author');
+  if (authorModal?.classList.contains('open')) { closeAuthorModal(); return; }
+  if (historyPanel.classList.contains('open')) { closeHistory();      return; }
+  if (currentView === 'brief')   { showView('search');  return; }
+  if (currentView === 'tracker') { showView(currentData ? 'brief' : 'search'); }
 });
 
 /* ── Init ───────────────────────────────────────────────── */
-initAbstractTooltip(); // no-op on touch devices
+initAbstractTooltip();
+updateTrackerBadge();
 searchInput.focus();

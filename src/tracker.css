@@ -1,0 +1,159 @@
+/* ═══════════════════════════════════════════════════
+   LEXIS — tracker.css
+   Styles for the Research Tracker view, author modal,
+   and brief card additions (Track button, author links).
+═══════════════════════════════════════════════════ */
+
+/* ════ TRACKER VIEW ════ */
+#view-tracker { display: flex; flex-direction: column; }
+
+.tracker-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-soft); position: sticky; top: 0; background: rgba(13,13,13,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 10; }
+
+.tracker-body { flex: 1; overflow-y: auto; max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 5rem; width: 100%; }
+
+/* ── Tabs ── */
+.tracker-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-soft); margin-bottom: 2rem; }
+
+.tracker-tab { display: flex; align-items: center; gap: 0.45rem; background: none; border: none; border-bottom: 2px solid transparent; color: var(--ink-3); font-family: var(--font-sans); font-size: 0.85rem; padding: 0.65rem 1.1rem; cursor: pointer; margin-bottom: -1px; transition: color 0.2s, border-color 0.2s; }
+.tracker-tab:hover  { color: var(--ink-2); }
+.tracker-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+
+.tab-badge { background: var(--accent); color: #0d0d0d; font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; padding: 0.1rem 0.42rem; border-radius: 100px; min-width: 18px; text-align: center; }
+
+/* ── Panels ── */
+.tracker-panel        { display: none; }
+.tracker-panel.active { display: block; }
+
+/* ── Feed ── */
+.feed-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.feed-item { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 1rem 1.25rem; transition: border-color 0.2s; }
+.feed-item:hover { border-color: var(--border); }
+
+.feed-item-title { display: block; font-size: 0.92rem; font-weight: 500; color: var(--ink); line-height: 1.45; margin-bottom: 0.3rem; text-decoration: none; transition: color 0.2s; }
+.feed-item-title:hover { color: var(--accent); text-decoration: none; }
+
+.feed-item-meta   { font-family: var(--font-mono); font-size: 0.66rem; color: var(--ink-3); margin-bottom: 0.2rem; }
+.feed-item-source { font-family: var(--font-mono); font-size: 0.62rem; color: var(--accent-dim); }
+
+/* ── Author cards ── */
+.author-cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 640px) { .author-cards { grid-template-columns: repeat(2, 1fr); } }
+
+.author-card { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 1.25rem; }
+
+.author-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 1rem; }
+.author-info { flex: 1; min-width: 0; }
+.author-name { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 0.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.author-meta    { font-family: var(--font-mono); font-size: 0.63rem; color: var(--ink-3); margin-bottom: 0.15rem; }
+.author-checked { font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink-3); font-style: italic; }
+
+.author-papers { display: flex; flex-direction: column; gap: 0; }
+
+.author-paper-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; padding: 0.45rem 0; border-top: 1px solid var(--border-soft); text-decoration: none; transition: border-color 0.15s; }
+.author-paper-row:hover { border-top-color: var(--border); text-decoration: none; }
+.author-paper-title { font-size: 0.8rem; color: var(--ink-2); line-height: 1.4; flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; transition: color 0.15s; }
+.author-paper-row:hover .author-paper-title { color: var(--accent); }
+.author-paper-meta { font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink-3); white-space: nowrap; flex-shrink: 0; }
+.author-no-papers { font-size: 0.8rem; color: var(--ink-3); font-style: italic; }
+
+/* ── Tracked papers ── */
+.paper-track-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.paper-track-card { background: var(--bg-2); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 1.25rem; }
+.paper-track-card:has(.citation-badge) { border-color: var(--accent-dim); }
+
+.paper-track-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.paper-track-info   { flex: 1; min-width: 0; }
+.paper-track-title  { display: block; font-size: 0.92rem; font-weight: 500; color: var(--ink); line-height: 1.45; text-decoration: none; margin-bottom: 0.25rem; transition: color 0.2s; }
+.paper-track-title:hover { color: var(--accent); text-decoration: none; }
+.paper-track-meta   { font-family: var(--font-mono); font-size: 0.64rem; color: var(--ink-3); }
+.paper-track-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+
+.citation-badge { background: var(--accent); color: #0d0d0d; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 100px; white-space: nowrap; }
+
+.citation-section       { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-soft); }
+.citation-section-label { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 0.75rem; }
+.citation-list          { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+
+.citation-row { display: flex; flex-direction: column; gap: 0.12rem; padding: 0.45rem 0.6rem; border-radius: var(--radius); text-decoration: none; transition: background 0.15s; }
+.citation-row:hover { background: var(--bg-3); text-decoration: none; }
+.citation-title { font-size: 0.82rem; color: var(--ink); line-height: 1.4; transition: color 0.15s; }
+.citation-row:hover .citation-title { color: var(--accent); }
+.citation-meta  { font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-3); }
+
+.dismiss-btn { background: none; border: 1px solid var(--border); color: var(--ink-3); font-family: var(--font-sans); font-size: 0.75rem; padding: 0.3rem 0.75rem; border-radius: var(--radius); cursor: pointer; transition: color 0.2s, border-color 0.2s; }
+.dismiss-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+
+/* ── Remove button (shared) ── */
+.remove-btn { background: none; border: none; color: var(--ink-3); cursor: pointer; padding: 0.2rem; display: flex; flex-shrink: 0; border-radius: 4px; transition: color 0.2s, background 0.2s; }
+.remove-btn:hover { color: var(--red); background: rgba(176,58,46,0.08); }
+
+/* ── Empty states ── */
+.tracker-empty { font-size: 0.85rem; color: var(--ink-3); font-style: italic; padding: 1rem 0; }
+.tracker-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 5rem 2rem; text-align: center; }
+.tracker-empty-title { font-family: var(--font-serif); font-size: 1.3rem; color: var(--ink-2); }
+.tracker-empty-sub   { font-size: 0.88rem; color: var(--ink-3); max-width: 420px; line-height: 1.65; }
+
+/* ════ BRIEF CARD ADDITIONS ════ */
+
+/* Paper card is div+link-title instead of full-anchor */
+.paper-card { cursor: default; }
+.paper-card-link { display: block; text-decoration: none; }
+.paper-card-link:hover .card-title { color: var(--accent); }
+/* Hover lift via parent .card already applied */
+
+/* Author links (clickable names inside paper cards) */
+.author-link { color: var(--ink-2); cursor: pointer; border-bottom: 1px dashed transparent; transition: color 0.15s, border-color 0.15s; }
+.author-link:hover { color: var(--accent); border-bottom-color: var(--accent-dim); }
+
+/* Track button */
+.card-track-btn { display: inline-block; background: none; border: 1px solid var(--border); color: var(--ink-3); font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.14rem 0.5rem; border-radius: 3px; cursor: pointer; margin-top: 0.5rem; transition: color 0.2s, border-color 0.2s, background 0.2s; }
+.card-track-btn:hover     { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-glow); }
+.card-track-btn--active   { color: var(--green) !important; border-color: var(--green) !important; cursor: default; background: none !important; }
+
+/* ════ TRACKER NAV BADGE ════ */
+.tracker-nav-badge { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; display: none; margin-left: 1px; vertical-align: middle; animation: pulseBadge 2s ease infinite; }
+@keyframes pulseBadge { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ════ REFRESH BUTTON ════ */
+.refresh-btn.is-refreshing svg { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ════ AUTHOR MODAL ════ */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 80dvh; display: flex; flex-direction: column; overflow: hidden; transform: translateY(12px); transition: transform 0.3s var(--ease-out); }
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
+.modal-title  { font-family: var(--font-serif); font-size: 1.1rem; color: var(--ink); }
+
+.modal-search-row  { display: flex; gap: 0.5rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-soft); flex-shrink: 0; }
+.modal-search-input { flex: 1; background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.75rem; font-family: var(--font-sans); font-size: 0.88rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
+.modal-search-input:focus { border-color: var(--accent-dim); }
+.modal-search-input::placeholder { color: var(--ink-3); }
+.modal-search-btn { background: var(--accent); color: #0d0d0d; border: none; border-radius: var(--radius); padding: 0.5rem 1rem; font-family: var(--font-sans); font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+.modal-search-btn:hover { background: #ddb95a; }
+
+.author-search-results { overflow-y: auto; flex: 1; padding: 0.75rem 1.5rem 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.author-result-card { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--bg-3); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 0.75rem 1rem; transition: border-color 0.2s; }
+.author-result-card:hover { border-color: var(--border); }
+.author-result-info { flex: 1; min-width: 0; }
+.author-result-name { font-size: 0.9rem; font-weight: 500; color: var(--ink); margin-bottom: 0.15rem; }
+.author-result-meta { font-family: var(--font-mono); font-size: 0.63rem; color: var(--ink-3); }
+
+.author-track-btn { background: none; border: 1px solid var(--accent-dim); color: var(--accent); font-family: var(--font-sans); font-size: 0.78rem; padding: 0.3rem 0.75rem; border-radius: var(--radius); cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.2s; }
+.author-track-btn:hover    { background: var(--accent-glow); }
+.author-track-btn:disabled { color: var(--green); border-color: var(--green); cursor: default; background: none; }
+
+.modal-loading, .modal-empty { font-size: 0.84rem; color: var(--ink-3); font-style: italic; text-align: center; padding: 1.5rem 0; }
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .tracker-body   { padding: 1.5rem 1rem 3rem; }
+  .tracker-tab    { font-size: 0.78rem; padding: 0.5rem 0.65rem; }
+  .tracker-header { padding: 1rem; }
+}
